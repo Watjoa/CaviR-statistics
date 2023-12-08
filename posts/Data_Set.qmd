@@ -1,0 +1,219 @@
+---
+title: "Get your dataset ready"
+description: "Upload, clean, restructure and save data"
+author:
+  - name: Joachim Waterschoot
+    url: {}
+date: "12/01/2023"
+categories: [upload data, reformat variables, reverse variable, match variable, rename column, create variables, save dataset, long to wide, wide to long]
+image: datacleaning.jpg
+format: 
+  html:
+    toc: true
+engine: knitr
+---
+
+# Get R and youR data Ready
+
+## Get ready
+
+To work with R, you need packages, including useful functions. These will save time because they provide an easy way to run complex analyses. By **installing** these packages on your computer, you can make use of these functions. Indeed, they are already written for you, so you don't have to code yourself.
+
+::: callout-tip
+At each start of a new R session (e.g., after shutting down your computer), you have to load the packages you want to use. Instead of using `library(X)` for each package, you can make a list so they can be loaded all at once.
+:::
+
+Following packages are required for (1), (2) and (3):
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+# my list of packages (as an example)
+x<-c('readxl','haven','psych','sjPlot','writexl','foreign')
+
+# do this only once
+install.packages(x) 
+
+# do this at the start of each session
+lapply(x, require, character.only = TRUE) 
+
+# use this for only one package
+library(PACKAGE_NAME)
+```
+
+Also important is that R knowns in which folder you want to work. By following code, you set your work directory in which R can find the required datasets and also can save the files you want to save.
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+setwd("/Users/joachimwaterschoot/Downloads/Analyses")
+```
+
+## Welcome, data!
+
+Datasets can be loaded in every format. Beware, these functions also include more options (e.g., a specific tab in an excel file). More information can be found on the page of the packages (search for the function in Google)
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+df <- readRDS('FILE.rds')
+df <- read_xlsx('FILE.xlsx')
+df <- read.spss("FILE.sav",
+                use.value.labels = FALSE,
+                to.data.frame=TRUE)
+```
+
+After data is loaded, you can check whether it occurred correctly. Do this by checking the column names and the dimension (number of rows X number of columns).
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+names(df) #column names
+dim(df) #how many rows and columns
+head(df,10) #check the first 10 rows
+```
+
+# WoRk with the dataset
+
+## Put your variables in the right format
+
+Importantly, you want to have variables in the right format. This is important before starting analyses.
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+# formatting into numeric variable
+df$VARIABLE1 <- as.numeric(df$VARIABLE1)
+
+# formatting into a categorical variable
+df$VARIABLE2 <- as.factor(df$VARIABLE2)
+# check the levels
+levels(df$VARIABLE2)
+# provide different labels to the levels if necessary
+levels(df$VARIABLE2) <- c('LEVEL1','LEVEL2')
+```
+
+::: {.callout-tip title="How to reverse a variable?" collapse="true"}
+To reverse a numeric value or to change specific values to another value in a column, you can use the recode function...
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+library(dplyr)
+df$item_r <- as.factor(recode(df$item, '1'='5', '2'='4','3'='3','4'='2','5'='1'))
+```
+
+... or you can subtract that column from its highest value + 1.
+
+Here, a 1-5 scale is reversed by subtracting it from 6. By doing this, 5 becomes 1, 4 becomes 2, etc.
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+df$item_r <- 6-as.numeric(df$item)
+```
+:::
+
+::: {.callout-tip title="How to match a variable to another dataset?" collapse="true"}
+When you want to add information to a dataset (e.g., df), based on another dataset (e.g., df_other), you can use the `match()` function to first match values of the same variable in the same datasets (e.g., participation number).
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+df$VARIABLE1 <- df_other$VARIABLE2[match(df$ID,df_other$df)]
+```
+:::
+
+::: {.callout-tip title="How to rename a column?" collapse="true"}
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+names(df)[names(df) == 'old.var.name'] <- 'new.var.name'
+```
+:::
+
+## Create variables
+
+In the `keys.list`, you make an overview of which items belong to which variable. Do this for only those containing at least 2 items or more.
+
+::: callout-important
+Of course, this can only be done with numeric variables.
+:::
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+keys.list <- list(
+  VARIABLE1 = c("ITEM1","ITEM2"),
+  VARIABLE2 = c("ITEM1","ITEM2")
+)
+```
+
+This list will be used in the following code to calculate your variables and to add them in the described order to the dataset.
+
+::: {.callout-important title="How to rename a column?" collapse="false"}
+In this code, the name of the dataframe is `df`. Make sure you replace this label when you have another name
+:::
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+library(psych)
+
+columns <- unlist(keys.list, use.names=FALSE) 
+scaleitems <- df[,columns] 
+scaleitems <- sapply(scaleitems, as.numeric) 
+df <- df[, ! names(df) %in% columns, drop = F]
+
+keys <- make.keys(scaleitems,keys.list)
+scores <- scoreFast(keys, scaleitems, impute="none")
+
+means <- as.data.frame(scores)
+colnames(means) <- sub("-A.*", "", colnames(means))
+
+df <- cbind(df, scaleitems,means)
+
+```
+
+The `sjt.itemanalysis` function of the `sjPlot` package provides a nice overview of the internal consistencies of your variables.
+
+::: {.callout-note collapse="false"}
+-   overview of items
+-   percentage of missing values
+-   standard deviation
+-   skewness: the higher, the skewer
+-   item difficulty: should range between .20 and .80. Ideal value is `p+(1-p)/2` (mostly between .50 and .80)
+-   item discrimination: acceptable cut-off of .20. The closer to 1, the better.
+-   Cronbach's Alpha if item was removed from scale
+-   mean (or average) inter-item correlation: acceptable between .20 and .40
+-   Cronbach's Alpha: acceptable cut-off of .70
+:::
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+sjt.itemanalysis(df[,c(keys.list$VARIABLE1)])
+sjt.itemanalysis(df[,c(keys.list$VARIABLE2)])
+```
+
+# Save a dataset
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+saveRDS(df,'NAME.rds') # R format
+write_csv(df,'NAME.csv') # csv format
+write_xlsx(df,'NAME.xlsx') # excel format
+write_sav(df,'NAME.sav') # SPSS format
+```
+
+# Long and wide
+
+## Wide to long
+
+First, we make a list of those variables we want to restructure.
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+longlist <- list(
+  VAR1=c('VAR1_1','VAR1_2','VAR1_3','VAR1_4'),
+  VAR2=c('VAR2_1','VAR2_2','VAR2_3','VAR2_4')
+)
+```
+
+The list is used in the code below:
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+dflong <- reshape(data = df, # name of the dataset
+                  idvar = "ID", # group variable including dependent variance
+                  varying = longlist,
+                  direction="long",
+                  v.names = names(longlist),
+                  sep="_")
+```
+
+## Long to wide
+
+Complete the following function:
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+dfwide <- reshape(dflong, # name of the dataset
+                  idvar = "ID",  # name of the grouping variable including dependent variance
+                  timevar = "time", # time variable
+                  direction = "wide")
+
+head(dfwide) # check whether the function did what you expected
+```

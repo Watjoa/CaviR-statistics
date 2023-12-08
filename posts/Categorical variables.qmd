@@ -1,0 +1,98 @@
+---
+title: "Work with categorical variables"
+description: "Check the role of categorical variables"
+author:
+  - name: Joachim Waterschoot
+    url: {}
+date: "12/02/2023"
+categories: [frequencies, (M)ANOVA, tukey post-hoc]
+image: factors.jpg
+format: 
+  html:
+    toc: true
+engine: knitr
+bibliography: references.bib
+---
+
+# Frequencies
+
+When you want to check whether, for instance, more male are present in a specific group, you can get a clean contingency table with a chi-square test by following code. Of course, you can work with all the different options as you wish:
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+library(sjPlot)
+
+tab_xtab(df$VAR1,df$VAR2,
+         show.cell.prc = FALSE,
+         show.row.prc = TRUE,
+         show.col.prc = FALSE,
+         show.legend = TRUE,
+         show.na = FALSE,
+         show.summary=TRUE)
+```
+
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+data  <- foreign::read.spss("data.sav", 
+                  use.value.labels = FALSE, 
+                  to.data.frame=TRUE)
+library(sjPlot)
+data$Group <- as.factor(data$Condition)
+levels(data$Group) <- c('Group 1','Group 2')
+
+data$Groups <- as.factor(data$Conditie)
+levels(data$Groups) <- c('Group 1','Group 2', 'Group 3', 'Group 4')
+
+data$Gender <- as.factor(data$Geslacht)
+levels(data$Gender) <- c('Male','Female')
+
+data$Autonomy <- data$Autonomy_Satisfaction
+data$Persistence <- data$Intended_persistence
+
+tab_xtab(data$Group,data$Gender,
+         show.cell.prc = FALSE,
+         show.row.prc = TRUE,
+         show.col.prc = FALSE,
+         show.legend = TRUE,
+         show.na = FALSE,
+         show.summary=TRUE)
+```
+
+# (M)ANOVA
+
+The `manovaR` function of the `CaviR` package allows to have a full and informative overview of the role of a categorical variable in prediction of several numeric variables.
+
+::: {.callout-note title="The function provides:" collapse="false"}
+The function provides:
+
+-   descriptive statistics for each level of the categorical variable
+
+-   univariate analyses with a *p*-value for statistical significance and a partial eta-squared for practical significance
+
+-   multivariate analysis with the Wilks' Lambda
+:::
+
+::: {.callout-note title="How to interpret the partial eta-squared?" collapse="true"}
+-   small when *η~p~^2^* \> .0099
+
+-   medium when *η~p~^2^* \> .0588
+
+-   large when *η~p~^2^* \>.1379
+
+    [@cohen2013]
+:::
+
+```{r, echo=TRUE,message=FALSE,warning=FALSE}
+library(CaviR)
+manovaR(data[,c('Group','Autonomy',
+                'Vitality','Persistence')])
+```
+
+::: {.callout-important title="When number of levels >2" collapse="false"}
+When the categorical predictor has more than two levels, the function adds the solution of a multicomparison tukey post-hoc analyses to the table in letters. These letters are sorted based on the descriptives.
+:::
+
+```{r, echo=TRUE,message=FALSE,warning=FALSE}
+library(CaviR)
+manovaR(data[,c('Groups','Autonomy',
+                'Vitality','Persistence')],
+        tukey=TRUE)
+```

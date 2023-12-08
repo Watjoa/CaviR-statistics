@@ -1,0 +1,15 @@
+---
+title: "Data Rt"
+subtitle: "How to code in R"
+listing:
+  contents: posts
+  fields: [image, title, description]
+  type: grid
+  image-height: 100%
+  filter-ui: false
+  sort-ui: false
+  #max-items: 5
+  table-hover: true
+  categories: true
+  sort: "date"
+---

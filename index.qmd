@@ -1,0 +1,16 @@
+---
+format: 
+  html:
+    toc: false
+    page-layout: full
+---
+
+![](logocircle2.png){width="30%" fig-align="center"}
+
+> **CaviR** is an R-package and website, aiming to provide those using statistics the opportunity to perform complex but accurate statistics. In the package, people can use functions that provide the required output and knowledge about statistical analyses, without loosing the cognitive energy of doing and knowing the coding. In *Data Rt*, a number of tutorials can be found including the required codings and knowledge about statistics. By doing this, we hope to bridge the gap between what is known and what should be known.
+
+# News
+
+## CaviR 0.1
+
+In December 2023, we built this website to include as much of the information available that has been developed under the label of *CaviR.* On this website, we now provide all tutorials that were available in *DataRt* and updated these with the development of *CaviR* as an R package.

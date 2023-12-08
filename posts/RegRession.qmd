@@ -1,0 +1,234 @@
+---
+title: "Regression modelling"
+description: "Perform (multilevel) regression analyses"
+author:
+  - name: Joachim Waterschoot
+    url: {}
+date: "12/04/2023"
+categories: [linear modeling, multilevel, interaction plot, simple slopes, johnson-neyman]
+image: regression.jpg
+format: 
+  html:
+    toc: true
+engine: knitr
+bibliography: references.bib
+---
+
+# Cross-sectional
+
+Time to build our model. Here we have two main effects and one interaction effect of the predictor *Condition* (i.e., received no choice, received choice) and *Indecisiveness* (i.e., level of one's indecisiveness). *Condition* is a (numeric) dummy code, *Indecisiveness* is centered. The outcome *Pleasure* is not centered.
+
+::: {.callout-tip title="What about categorical predictors: dummy or effect coding?" collapse="true"}
+Before building our model, we need to make sure that all our input is ok. For instance, we want to have dummy or effect codings instead of factor variables. Here, we work with the example of a factor with 3 levels, resulting in 2 dummy codings:
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+df$dummy1 <- as.factor(df$VAR1)
+levels(df$dummy1) <- c(0,1,0)
+df$dummy1 <- as.numeric(df$dummy1)
+
+df$dummy2 <- as.factor(df$VAR1)
+levels(df$dummy2) <- c(0,0,1)
+df$dummy2 <- as.numeric(df$dummy2)
+```
+
+or you want to use effect codings.
+
+To my opinion, this is the most useful one to do as things are centered in our interpretation. When using dummy, you need to interpret the main effect of a particular variable 'when all other coefficients are kept stable'. In the case of a dummy coding, this means that this refers to the main effect in presence of the reference value of the dummy coding. When doing effect coding, this is not the case and you have a more clear interpretation of the main effect.
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+
+df$dummy1 <- ifelse(df$VAR1 == "group2", 1, 0)
+df$dummy2 <- ifelse(df$VAR1 == "group3", 1, 0)
+df$dummy3 <- ifelse(df$VAR1 == "group4", 1, 0)
+
+```
+:::
+
+::: {.callout-tip title="What about numeric predictors: center or standardize?" collapse="true"}
+It is to center numeric variables. When centering, you keep the standard deviation. When standardizing, this is forced to 1. This is a choice, but I, personally, like it when the initial variance is kept in terms of interpreting the results.
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+df$VAR1.c <- as.numeric(scale(df$VAR1,scale=FALSE,center=TRUE))
+```
+:::
+
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+data  <- foreign::read.spss("data.sav", 
+                  use.value.labels = FALSE, 
+                  to.data.frame=TRUE)
+
+data$Condition.d <- as.factor(data$Condition)
+levels(data$Condition.d) <- c(1,0)
+data$Condition.d <- factor(data$Condition.d,levels=c(0,1))
+data$Condition.d <- as.numeric(data$Condition.d)
+
+data$Indecisiveness.c <- as.numeric(scale(data$Indecisiveness,scale=FALSE,center=TRUE))
+data$Persistence <- data$Intended_persistence
+```
+
+```{r, echo=TRUE,message=FALSE,warning=FALSE}
+model <- lm(Persistence~ Condition.d * Indecisiveness.c, data=data) 
+```
+
+::: callout-important
+In this model, we immediatly mentioned the interaction effect because the `lm` function in R calculates both the main effects and interaction effects by default. This saves time, but beware an interaction effect is not interpretable without main effects in a model.
+:::
+
+Check the output of the model using the `summaRy` function in the `CaviR` package.
+
+```{r, echo=TRUE,message=FALSE, warning=FALSE}
+library(CaviR)
+summaRy(model)
+```
+
+::: {.callout-note title="How to interpret this output?"}
+The output provides several sources of information:
+
+-   Raw and standardized coefficients
+
+-   Standard errors and t-values, with *p*-values
+
+-   the ANOVA output of the model, providing partial eta-squares and Variance Inflation Factors (to check for multicollinearity)
+
+-   Number of used observations and how many were excluded from the analyses
+
+-   Total fit for the model and R-squared values
+:::
+
+When selecting the whole output (CTRL + A or CMD + A), one could paste this into Excel or Word.
+
+::: {.callout-note title="How to interpret the partial eta-squared?" collapse="true"}
+-   small when *η~p~^2^* \> .0099
+
+-   medium when *η~p~^2^* \> .0588
+
+-   large when *η~p~^2^* \>.1379
+
+    [@cohen2013]
+:::
+
+::: {.callout-tip title="What about model assumptions?" collapse="true"}
+Important is to check to what your model does satisfy all models. A nice way to do this is using the `check_model` function, however this might take a while (especially in more complex models). You can check all diagnostics separately (which may be faster):
+
+**Model assumptions:**
+
+1.  **Linearity**: is my model linear?
+
+    -   *Check?*: (1) is the point cloud at random and (2) is the blue line in plot 2 similar to the horizontal line in *plot 2*?
+
+    -   *Violation?*: consider another relationship (e.g. cubric, curvilinear)
+
+2.  **Normality**: is the distribution of my parameters / residuals normal?
+
+    -   *Check?*: do I have a Q-Q plot in *plot 3* where all datapoints are as close too the diagonal? Is the distribution as similar as possible to the normal distribution in *plot 8*?
+
+    -   *Violation?*: consider transformations of your parameters or check which variable is necessary to add to the model
+
+3.  **Homoscedasticity**: is the spread of my data across levels of my predictor the same?
+
+    -   *Check?*: (1) is the point cloud at random and (2) is the blue line in plot 2 similar to the horizontal line in *plot 2*? (3) Is there a pattern in *plot 4*?
+    -   *Violation?*: in case of heteroscedasticity, you will have inconsistency in calculation of standard errors and parameter estimation in the model. This results in biased confidence intervals and significance tests.
+
+4.  **Independence**: are the errors in my model related to each other?
+
+5.  **Influential outliers**: are there outliers influential to my model?
+
+    -   *Check?*: is the blue line in *plot 7* curved?
+
+    -   *Violation?*: this could be problematic for estimating parameters (e.g. mean) and sum of squared and biased results.
+
+```{r, echo=TRUE,message=FALSE, warning=FALSE}
+library(performance)
+check_normality(model)
+check_outliers(model)
+check_heteroscedasticity(model)
+multicollinearity(model)
+```
+
+So, here, the model diagnostics tell us the residuals are slightly non-normal, no outliers are detected, the heteroscedascticity assumption is satisfied and we have no multicollinearity. More information about this can be found in the package `performance`
+:::
+
+The `inteRplot` function in the `CaviR` package provides an informative overview when checking a two-way interaction effect. Rather than only representing the interaction effect by the two values equaling +- 1 standard deviation from the mean of the moderator, it is important to have a full overview to have an accurate and full interpretation.
+
+::: callout-note
+Following information is required to use the function:
+
+-   name of the model
+
+-   name of the predictor and the moderator
+
+-   labels for the outcome, x axis, moderator
+
+-   range of y-values
+
+-   labels for the x axis
+:::
+
+```{r, echo=TRUE,message=FALSE, warning=FALSE}
+library(CaviR)
+inteRplot(model,
+          pred = 'Condition.d',
+          mod = 'Indecisiveness.c',
+          outcome = 'Persistence',
+          xaxis = 'Condition',
+          moderator = 'Indecisiveness',
+          miny = 1,
+          maxy = 5,
+          xlabels=c('No choice','Choice'))
+
+```
+
+::: {.callout-note title="How to interpret this output?"}
+The output of this two-way interaction figure provides several sources of information.
+
+In the figure itself:
+
+-   the (classic) '+- standard deviation' lines
+
+-   a blue line representing the slope of the lowest value of the moderator
+
+-   a red line representing the slope of the highest value of the moderator
+
+-   a grey area going from the minimum to the maximum value of the moderator
+
+-   a dark grey area representing all slopes for which the interaction effect is **not significant** (based on the Johnson-Neyman interval)
+
+On the right, we have numerical information in the legend, showing the minimum and maximum value of the moderator, the numerical value of the Johnson-Neyman interval and the standardized simple slope coefficients (with statistic) for the slopes of the +- 1 standard deviations.
+:::
+
+As can be noticed in the figure, it is important to have a full overview of the interaction effect, doing this by including the Johnson-Neyman interval. Based on solely the standard deviation values, we would have thought that *"the lower one's indecisiveness, the more persistence is reported when choice was provided"*. However, we see that this effect is *not* significant for those having (standardized) values on indecisiveness higher than 0.64. From then on, the effect of having choice or not is non-significant on one's intended persistence.
+
+# Multilevel Modeling
+
+Both the `summaRy` and `inteRplot` functions are also applicable for multilevel modeling, when using the `lmer` function of the `lme4` package. An example:
+
+```{r, echo=FALSE,message=FALSE, warning=FALSE}
+datamultilevel  <- foreign::read.spss("multileveldataset.sav", 
+                  use.value.labels = FALSE, 
+                  to.data.frame=TRUE)
+datamultilevel$Integration.c <- as.numeric(scale(datamultilevel$Integration,scale=FALSE,center=TRUE))
+datamultilevel$Dysregulation.c <- as.numeric(scale(datamultilevel$Dysregulation,scale=FALSE,center=TRUE))
+```
+
+```{r, echo=TRUE,message=FALSE, warning=FALSE}
+library(lme4); library(lmerTest); library(CaviR)
+
+model <- lmer(Depression ~ Dysregulation.c*Integration.c + (1|ID), data=datamultilevel)
+summaRy(model)
+```
+
+```{r, echo=TRUE,message=FALSE, warning=FALSE}
+library(CaviR)
+inteRplot(model,
+          pred = 'Dysregulation.c',
+          mod = 'Integration.c',
+          outcome = 'Depression',
+          xaxis = 'Dysregulation',
+          moderator = 'Integration',
+          miny = 1,
+          maxy = 4,
+          xlabels=c('Low','High'))
+
+```
+
+In this interaction effect, there are no non-significant (dark grey) slopes because the interaction effect is significant for each of the moderator's values.

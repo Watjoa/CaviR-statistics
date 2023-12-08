@@ -1,0 +1,97 @@
+---
+title: "Co-Relate"
+description: "Perform correlation analyses"
+author:
+  - name: Joachim Waterschoot
+    url: {}
+date: "12/03/2023"
+categories: [correlations, netwerk plot, multilevel-correlations, ICC-values]
+image: correlations.jpg
+format: 
+  html:
+    toc: true
+engine: knitr
+---
+
+# Cross-sectional
+
+As no packages were available providing a clean output of a correlation table, including descriptive statistics, I function was constructed in the `CaviR` package. By using this, a clean table will appear which can be copied wright away in Excel, Word, etc.
+
+::: callout-note
+1.  First, make a subset of all variables you want to include in the correlation matrix. You can choose which order they have.
+2.  Run the `coRtable()` function
+:::
+
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+data  <- foreign::read.spss("data.sav", 
+                  use.value.labels = FALSE, 
+                  to.data.frame=TRUE)
+```
+
+```{r, echo=TRUE,message=FALSE,warning=FALSE}
+correlation_dataset <- data[, c(
+  "Extra","Agree","Con","Neur","Open")]
+
+library(CaviR)
+coRtable(correlation_dataset)
+```
+
+::: callout-tip
+The output can be opened in Rstudio or in your browser. When copy it (CTRL + A or CMD + A), you can change the layout in your Excel or Word file to whatever you like.
+:::
+
+::: callout-tip
+If you want to change the names of the variables, use `colnames(correlation_dataset) <- c(NEW_NAMES)` after step 1 where you replace `NEW_NAMES` by a vector of names you prefer.
+:::
+
+Make a useful netwerk plot based on the variables in the correlation table.
+
+```{r, eval=TRUE,message=FALSE, warning=FALSE}
+library(qgraph)
+corMat <- cor(correlation_dataset, use = "pairwise.complete.obs") # Correlate data
+Graph_lasso <- qgraph(corMat, graph = "glasso",
+                      layout = "spring", tuning = 0.25,
+                      labels = colnames(corMat),
+                      sampleSize = nrow(correlation_dataset))
+```
+
+# Multilevel correlations
+
+The same `CaviR` package can be used for multilevel correlations (up until **2 levels**).
+
+::: callout-note
+1.  First, make a subset of all variables you want to include in the correlation matrix. You can choose which order they have, but make sure the grouping variable is the first one.
+2.  Run the `multicoR()` function.
+:::
+
+The upper diagonal will present the correlations within levels of the grouping variable. The lower diagonal will do this across groups.
+
+::: callout-important
+The `multicoR` function recognizes the first variable as the group variable, so make sure this is the first one in the dataset.
+:::
+
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+datamultilevel  <- foreign::read.spss("multileveldataset.sav", 
+                  use.value.labels = FALSE, 
+                  to.data.frame=TRUE)
+```
+
+```{r, eval=TRUE,message=FALSE, warning=FALSE}
+correlation_multileveldataset <- datamultilevel[, c(
+  "ID","Integration","Suppression","Dysregulation")]
+
+library(CaviR)
+multicoR(correlation_multileveldataset)
+```
+
+**Interpretation:**
+
+-   The table shows high ICC-values, indicating that 64% of the variance in the *Integration* variable is between groups (i.e., participants in this dataset) and 36% is located within groups, for instance.
+
+-   ***Between-group correlations (below diagonal):*** Group's overall mean level of *Integration* (i.e., across time) is related negatively with group's overall mean on *Suppression*.
+
+-   ***Within-group correlations (upper diagonal)***: When a person reports a momentary higher level of *Integration* compared to the overall mean across time, this person also reports a momentary lower level of *Suppression* compared to the overall mean across time.
+
+::: callout-note
+The *ICC* represents the Intra-Class Correlation or the level of between-grouping variable.
+:::

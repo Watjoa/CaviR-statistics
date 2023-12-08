@@ -1,0 +1,158 @@
+---
+title: "The package"
+subtitle: "Perform fancy statistics by yourself. Correct and fast."
+author:
+  - name: Joachim Waterschoot
+    url: {}
+date: "12/03/2023"
+categories: [correlations, regressions, visualization, clustering]
+image: correlations.jpg
+format: 
+  html:
+    toc: true
+    page-layout: article
+engine: knitr
+---
+
+# Installation
+
+```{r, eval=FALSE,message=FALSE,warning=FALSE}
+library(devtools) # Tools to Make Developing R Packages Easier 
+devtools::install_github("Watjoa/CaviR")
+```
+
+# Correlations
+
+Using the `coRtable` function to have a clear, informative correlation table with descriptions
+
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+library(CaviR)
+data  <- foreign::read.spss("posts/data.sav", 
+                  use.value.labels = FALSE, 
+                  to.data.frame=TRUE)
+```
+
+```{r, echo=TRUE,message=FALSE,warning=FALSE}
+coRtable(data[,c("Extra","Agree","Con","Neur","Open")])
+```
+
+or use the `multicoR` function to have a correlation table for within-group and between-group level. Descriptives are based on the between-group level.
+
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+datamultilevel  <- foreign::read.spss("posts/multileveldataset.sav", 
+                  use.value.labels = FALSE, 
+                  to.data.frame=TRUE)
+```
+
+```{r, echo=TRUE,message=FALSE,warning=FALSE}
+multicoR(datamultilevel[, c(
+  "ID","Integration","Suppression","Dysregulation")])
+```
+
+::: callout-tip
+In R, you can select the whole output (CTRL+A or CMD+A) and paste the output in excel to provide further modifications.
+:::
+
+# (M)ANOVA
+
+Using the `manovaR` function, a descriptive overview is displayed for a comparison between groups, including univariate, multivariate and tukey post-hoc analyses.
+
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+data  <- foreign::read.spss("posts/data.sav", 
+                  use.value.labels = FALSE, 
+                  to.data.frame=TRUE)
+library(sjPlot)
+data$Group <- as.factor(data$Condition)
+levels(data$Group) <- c('Group 1','Group 2')
+
+data$Groups <- as.factor(data$Conditie)
+levels(data$Groups) <- c('Group 1','Group 2', 'Group 3', 'Group 4')
+
+data$Gender <- as.factor(data$Geslacht)
+levels(data$Gender) <- c('Male','Female')
+
+data$Autonomy <- data$Autonomy_Satisfaction
+data$Persistence <- data$Intended_persistence
+```
+
+```{r, echo=TRUE,message=FALSE,warning=FALSE}
+manovaR(data[,c('Groups','Autonomy',
+                'Vitality','Persistence')], tukey=TRUE)
+```
+
+# Regression
+
+Using the `summaRy` function, an overview is presented with information regarding your linear (mixed) model
+
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+data  <- foreign::read.spss("posts/data.sav", 
+                  use.value.labels = FALSE, 
+                  to.data.frame=TRUE)
+
+data$Condition.d <- as.factor(data$Condition)
+levels(data$Condition.d) <- c(1,0)
+data$Condition.d <- factor(data$Condition.d,levels=c(0,1))
+data$Condition.d <- as.numeric(data$Condition.d)
+
+data$Indecisiveness.c <- as.numeric(scale(data$Indecisiveness,scale=FALSE,center=TRUE))
+data$Persistence <- data$Intended_persistence
+```
+
+```{r, echo=TRUE,message=FALSE,warning=FALSE}
+model <- lm(Persistence~ Condition.d * Indecisiveness.c, data=data) 
+summaRy(model)
+```
+
+Significant two-way interaction effects could be displayed using the `inteRplot` function.
+
+```{r, echo=TRUE,message=FALSE, warning=FALSE}
+inteRplot(model,
+          pred = 'Condition.d',
+          mod = 'Indecisiveness.c',
+          outcome = 'Persistence',
+          xaxis = 'Condition',
+          moderator = 'Indecisiveness',
+          miny = 1,
+          maxy = 5,
+          xlabels=c('No choice','Choice')) 
+```
+
+# Clustering
+
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+data  <- foreign::read.spss("posts/data.sav", 
+                  use.value.labels = FALSE, 
+                  to.data.frame=TRUE)
+
+# describe the cluster variables
+clustervariables <- c("Open","Con","Extra","Agree","Neur")
+
+# make a dataset only with those 
+# having assessments for all cluster variables
+data_complete <- data[complete.cases(data[,clustervariables]),]
+
+# make a subset with only the cluster variables 
+# to check for clusters
+df_clust <- data_complete[,clustervariables]
+
+# standardize all variables
+df_clust <- scale(df_clust,scale=TRUE)
+
+# save it as a data frame to make sure 
+# all other functions work properly
+df_clust <- as.data.frame(df_clust)
+
+```
+
+The `clusteRs`function of the `CaviR` package provides four figures showing a particular type of validation for a number of clusters. Indeed, we want to have all four of them, as we want to make a considered decision on how many clusters are in our dataset. This does not mean that all four types of validations will point towards the same number of clusters (sometimes it does, indicating strong evidence for a particular number). Therefore, you need to consider all types and explain in your reporting why you choose for a particular number of clusters.
+
+::: {.callout-tip title="What are the validation techniques?" collapse="true"}
+1.  *Elbow method*: the number of clusters with both a minimum of within-cluster variation and a maximum of between-cluster variation
+2.  *the Average Silhouette method*: the number of clusters with the highest average silhouette, indicating the best quality of clustering
+3.  *the Gap statistic method*: the number of clusters with the highest Gap-statistic [@tibshirani2001]
+4.  *Majority rule*: a summary of 30 indices reporting the most optimal number of clusters using the 'NbClust' function, including the CH index.
+:::
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+clusteRs(df_clust)
+```

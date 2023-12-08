@@ -1,0 +1,299 @@
+---
+title: "Check structural relationships"
+description: "Test structural (equation) models"
+author:
+  - name: Joachim Waterschoot
+    url: {}
+date: "12/05/2023"
+categories: [mediations, multilevel mediation, cross-lagged model]
+image: sem.jpg
+format: 
+  html:
+    toc: true
+engine: knitr
+---
+
+# Mediation
+
+::: {.callout-note title="What is a mediation?" collapse="false"}
+With mediation analyses, we want to check to what extent an predictor-outcome association is explained by their associations with a third variable, the 'mediator'.
+
+*Path C* refers to the association between the predictor and the outcome. This is the *total effect*.
+
+```{mermaid}
+flowchart LR
+    A(Predictor) -->|path C| B(Outcome)
+```
+
+In a mediation, we want to check whether the *mediator* explains this total effect. Specifically, we aim to calculate the indirect effect (i.e., effect through the mediator between predictor and outcome) and the direct effect (i.e., what remains of the total effect after controlling for the indirect effect). The indirect effect is the multiplication of path A and path B. The direct effect is path C\*.
+
+```{mermaid}
+flowchart LR
+    D(Predictor) -->|path A| E(Mediator)
+    D(Predictor) -->|path C*| F(Outcome)
+    E(Mediator) -->|path B| F(Outcome)
+```
+:::
+
+The `lavaan` package allows us to extend this mediation analyses for multiple predictors, mediators and outcomes. In the current example, we want to check to what extent our *condition* effect (a dummy code for the conditions *no choice* versus *choice*) on the outcomes *pleasure and interest*, *vitality*, and *intended persistence* is explained by the mediators *autonomy satisfaction* and *competence satisfaction*.
+
+```{mermaid}
+flowchart LR
+    A(Condition) --> |B1| B(Autonomy satisfaction)
+    A(Condition) --> |B2| C(Competence satisfaction)
+
+    A(Condition) --> |C1| D(Pleasure and interest)
+    A(Condition) --> |C2| E(Vitality)
+    A(Condition) --> |C3| F(Intended persistence)
+
+    B(Autonomy satisfaction) --> |A1| D(Pleasure and interest)
+    B(Autonomy satisfaction) --> |A3| E(Vitality)
+    B(Autonomy satisfaction) --> |A5| F(Intended persistence)
+
+    C(Competence satisfaction) --> |A2| D(Pleasure and interest)
+    C(Competence satisfaction) --> |A4| E(Vitality)
+    C(Competence satisfaction) --> |A6| F(Intended persistence)
+```
+
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+data  <- foreign::read.spss("data.sav", 
+                  use.value.labels = FALSE, 
+                  to.data.frame=TRUE)
+
+data$Autonomy <- as.numeric(scale(data$Autonomy_Satisfaction,scale=TRUE))
+data$Competence <- as.numeric(scale(data$Competence_Satisfaction,scale=TRUE))
+data$Pleasure <- data$Plezier
+
+data$Condition.d <- as.factor(data$Condition)
+levels(data$Condition.d) <- c(1,0)
+data$Condition.d <- factor(data$Condition.d,levels=c(0,1))
+data$Condition.d <- as.numeric(data$Condition.d)
+
+```
+
+In describing the model, we need to provide *a unique label* to each pathway, so we can use this in the calculation of the indirect and total effects.
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+library(lavaan)
+
+SEM <- "
+# predictor -> mediators (paths B)
+Autonomy ~ B1*Condition.d
+Competence ~ B2*Condition.d
+
+# predictor + mediator --> outcome (paths A and C*)
+Pleasure ~ A1*Autonomy + A2*Competence + C1*Condition.d
+Vitality ~ A3*Autonomy + A4*Competence + C2*Condition.d
+Intended_persistence ~ A5*Autonomy + A6*Competence + C3*Condition.d
+
+# calculation of an indirect effect
+B1A1 := B1*A1
+B1A2 := B1*A3
+B1A3 := B1*A5
+
+B2A2 := B2*A2
+B2A4 := B2*A4
+B2A6 := B2*A6
+
+# calculating total effect
+totB1A1 := C1 + (B1*A1)
+totB1A2 := C1 + (B1*A3)
+totB1A3 := C1 + (B1*A5)
+
+totB2A2 := C1 + (B2*A2)
+totB2A4 := C1 + (B2*A4)
+totB2A6 := C1 + (B2*A6)
+"
+
+fit <- sem(model = SEM, data = data)
+
+summary(fit,
+        fit.measures = TRUE,
+        standardize = TRUE,
+        rsquare = TRUE)
+
+# useful when fit of model is not good:
+modificationIndices(fit, sort.=TRUE, minimum.value=3)
+```
+
+::: {.callout-note title="Check the output" collapse="true"}
+```{r, echo=FALSE,message=FALSE, warning=FALSE}
+library(lavaan)
+
+SEM <- "
+# predictor -> mediators (paths B)
+Autonomy ~ B1*Condition.d
+Competence ~ B2*Condition.d
+
+# predictor + mediator --> outcome (paths A and C*)
+Pleasure ~ A1*Autonomy + A2*Competence + C1*Condition.d
+Vitality ~ A3*Autonomy + A4*Competence + C2*Condition.d
+Intended_persistence ~ A5*Autonomy + A6*Competence + C3*Condition.d
+
+# calculation of an indirect effect
+B1A1 := B1*A1
+B1A2 := B1*A3
+B1A3 := B1*A5
+
+B2A2 := B2*A2
+B2A4 := B2*A4
+B2A6 := B2*A6
+
+# calculating total effect
+totB1A1 := C1 + (B1*A1)
+totB1A2 := C1 + (B1*A3)
+totB1A3 := C1 + (B1*A5)
+
+totB2A2 := C1 + (B2*A2)
+totB2A4 := C1 + (B2*A4)
+totB2A6 := C1 + (B2*A6)
+"
+
+fit <- sem(model = SEM, data = data)
+```
+
+```{r, echo=TRUE,message=FALSE, warning=FALSE}
+summary(fit,
+        fit.measures = TRUE,
+        standardize = TRUE,
+        rsquare = TRUE)
+
+fitMeasures(fit, c("chisq", "df", "cfi", "rmsea", "srmr"))
+```
+:::
+
+::: callout-note
+The output shows that:
+
+-   The model has an acceptable fit
+
+-   Pathways between predictor and mediator are significant. Also, mediators are significantly related to outcomes.
+
+-   All total effects were significant, with direct effects still being significant and 3 indirect effects being significant (through the mediator *Competence*). Here, we can talk about a partial mediation.
+:::
+
+::: {.callout-tip collapse="true"}
+A useful online tool to visualize structural equation model is https://app.diagrams.net/
+:::
+
+# Multilevel Mediation
+
+We can also check for such a mediation model in a multilevel way. Currently, this is possible up until *two levels*. Here, we check for a simple example:
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+
+ML_SEM <- '
+level:1
+OUTCOME1 ~ VAR1 + VAR2 
+OUTCOME2 ~ VAR1 + VAR2 
+
+level:2
+OUTCOME1 ~ VAR1 + VAR2 
+OUTCOME2 ~ VAR1 + VAR2 
+'
+
+fit <- sem(model = ML_SEM, 
+           data = dflong, 
+           cluster = "ID", # group variable including dependent variance
+           optim.method = "em")
+
+summary(fit,
+        fit.measures = TRUE,
+        standardize = TRUE,
+        rsquare = TRUE)
+
+modificationIndices(fit, sort.=TRUE, minimum.value=3)
+```
+
+# Cross-lagged panel model
+
+## Between-subject
+
+```{mermaid}
+flowchart LR
+    A(Predictor X - time 1) -->|autoregression| B(Predictor X time - 2)
+    A(Predictor X - time 1) -->|cross-lagged| C(Predictor Y - time 2)
+    D(Predictor Y - time 1) -->B(Predictor X - time 2)
+    D(Predictor Y - time 1) -->C(Predictor Y - time 2)
+```
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+model <- 
+'
+VAR1_T2 + VAR2_T2 ~ VAR1_T1 + VAR2_T1
+'
+
+fit <- sem(model, data = df)
+summary(fit, 
+        fit.measures = TRUE, 
+        standardized = TRUE, 
+        rsquare = TRUE)
+modificationIndices(fit, sort.=TRUE, minimum.value=3)
+```
+
+## Within-subject
+
+Flournoy wrote an amazingly useful package to generate a syntax for a RI-CLPM in the `riclpmr` package.
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+library(devtools)
+# install_github('jflournoy/riclpmr') # in case you have not installed the package yet
+library(riclpmr)
+library(lavaan)
+```
+
+Select the variables from your **wide** dataset.
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+data_riclpm <- dfwide[,c("ID", # also important to include the grouping variable
+                         'VARIABLEX_1','VARIABLEX_2','VARIABLEX_3','VARIABLEX_4',
+                         'VARIABLEY_1','VARIABLEY_2','VARIABLEY_3','VARIABLEY_4')]
+
+# give different column names to make the output of the model more readable
+colnames(data_riclpm) <- c("id",
+                           'x1','x2','x3','x4',
+                           'y1','y2','y3','y4')
+
+data_riclpm <- data_riclpm[ , -c(1)] #remove ID
+ 
+# refer which columns belong to a specific variable
+var_groups <- list(
+  x=c('x1','x2','x3','x4'),
+  y=c('y1','y2','y3','y4')
+)
+```
+
+Just run the following code. Herein, a constrained and an unconstrained model are performed and compared (via ANOVA). Based on which model provides the best fit of the data, you can check the output of the model.
+
+```{r, eval=FALSE,message=FALSE, warning=FALSE}
+
+# construct contraint model
+model_text <- riclpmr::riclpm_text(var_groups,
+                                   constrain_over_waves = TRUE,
+                                   constrain_ints = "free")
+
+fit_constraints <- riclpmr::lavriclpm(riclpmModel = model_text, 
+                                      data = data_riclpm,
+                                      missing = 'fiml', 
+                                      meanstructure = T, 
+                                      int.ov.free = T)
+# construct unconstraint model
+model_text <- riclpmr::riclpm_text(var_groups,
+                                   constrain_over_waves = FALSE,
+                                   constrain_ints = "free")
+
+fit_noconstraints <- riclpmr::lavriclpm(riclpmModel = model_text, 
+                                        data = data_riclpm,
+                                        missing = 'fiml', 
+                                        meanstructure = T, 
+                                        int.ov.free = T)
+
+# run this to compare constraint and unconstraint model in terms of data fit
+anova(fit_constraints,fit_noconstraints)
+
+# Check the output of the chosenmodel
+summary(fit_constraints,
+        fit.measures = TRUE,
+        standardize = TRUE,
+        rsquare = TRUE)
+```
