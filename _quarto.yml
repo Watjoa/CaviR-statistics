@@ -16,9 +16,9 @@ website:
     pinned: true
     right:
       - href: Package.qmd
-        text: The package
+        text: What's in the package?
       - href: DataRt.qmd
-        text: Code in R
+        text: How to code in R?
       - about.qmd
     tools:
     # - icon: twitter

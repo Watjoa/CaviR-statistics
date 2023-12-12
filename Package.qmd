@@ -76,8 +76,8 @@ data$Persistence <- data$Intended_persistence
 ```
 
 ```{r, echo=TRUE,message=FALSE,warning=FALSE}
-manovaR(data[,c('Groups','Autonomy',
-                'Vitality','Persistence')], tukey=TRUE)
+manovaR(data[,c('Group','Autonomy','Vitality','Persistence')],
+        stand=TRUE, sign = 0.05, tukey = TRUE)
 ```
 
 # Regression

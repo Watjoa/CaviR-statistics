@@ -54,6 +54,7 @@ tab_xtab(data$Group,data$Gender,
          show.legend = TRUE,
          show.na = FALSE,
          show.summary=TRUE)
+
 ```
 
 # (M)ANOVA
@@ -82,8 +83,8 @@ The function provides:
 
 ```{r, echo=TRUE,message=FALSE,warning=FALSE}
 library(CaviR)
-manovaR(data[,c('Group','Autonomy',
-                'Vitality','Persistence')])
+manovaR(data[,c('Group','Autonomy','Vitality','Persistence')],
+        stand=TRUE, sign = 0.05, tukey = TRUE)
 ```
 
 ::: {.callout-important title="When number of levels >2" collapse="false"}
@@ -92,7 +93,6 @@ When the categorical predictor has more than two levels, the function adds the s
 
 ```{r, echo=TRUE,message=FALSE,warning=FALSE}
 library(CaviR)
-manovaR(data[,c('Groups','Autonomy',
-                'Vitality','Persistence')],
-        tukey=TRUE)
+manovaR(data[,c('Groups','Autonomy','Vitality','Persistence')],
+        stand=TRUE, sign = 0.05, tukey = TRUE)
 ```
