@@ -5,6 +5,8 @@ format:
     page-layout: full
 ---
 
+<link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+
 ![](logocircle2.png){width="30%" fig-align="center"}
 
 > **CaviR** is an R-package and website, aiming to provide those using statistics the opportunity to perform complex but accurate statistics. In the package, people can use functions that provide the required output and knowledge about statistical analyses, without loosing the cognitive energy of doing and knowing the coding. In *Data Rt*, a number of tutorials can be found including the required codings and knowledge about statistics. By doing this, we hope to bridge the gap between what is known and what should be known.
