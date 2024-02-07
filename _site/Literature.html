@@ -164,38 +164,7 @@ ul.task-list li input[type="checkbox"] {
 <!-- # data$`domains/topics` <- as.character(data$`domains/topics`) -->
 <!-- # data$year <- as.numeric(data$year) -->
 <!-- #  -->
-<!-- library(DT) -->
-<!-- #  -->
-
-<!-- # datatable( -->
-<!-- #       data, -->
-<!-- #       escape=FALSE, -->
-<!-- #      # class = 'cell-border stripe', -->
-<!-- #      filter = 'top', -->
-<!-- #      extensions = 'Buttons', -->
-<!-- #       options = list( -->
-<!-- #         pageLength = 20, -->
-<!-- #         lengthMenu = c(10, 20, 50), -->
-<!-- #         dom = 'Bfrtip', -->
-<!-- #         autoWidth = TRUE, -->
-<!-- #         buttons = c('copy', 'csv', 'excel', 'pdf', 'print'), -->
-<!-- #         search = list(regex = TRUE, caseInsensitive = TRUE), -->
-<!-- #       columnDefs = list( -->
-<!-- #         list( -->
-<!-- #           targets = 4, -->
-<!-- #           render = JS( -->
-<!-- #             "function(data, type, full, meta) {", -->
-<!-- #             "  if (type === 'filter') {", -->
-<!-- #             "    return data.replace(/, /g, '|');", -->
-<!-- #             "  } else {", -->
-<!-- #             "    return data;", -->
-<!-- #             "  }", -->
-<!-- #             "}" -->
-<!-- #           ) -->
-<!-- #         ) -->
-<!-- #       ) -->
-<!-- #     ) -->
-<!-- # ) -->
+<p>library(DT) # # datatable( # data, # escape=FALSE, # # class = ‘cell-border stripe’, # filter = ‘top’, # extensions = ‘Buttons’, # options = list( # pageLength = 20, # lengthMenu = c(10, 20, 50), # dom = ‘Bfrtip’, # autoWidth = TRUE, # buttons = c(‘copy’, ‘csv’, ‘excel’, ‘pdf’, ‘print’), # search = list(regex = TRUE, caseInsensitive = TRUE), # columnDefs = list( # list( # targets = 4, # render = JS( # “function(data, type, full, meta) {”, # ” if (type === ‘filter’) {“, #” return data.replace(/, /g, ‘|’);“, #” } else {“, #” return data;“, #” }“, #”}” # ) # ) # ) # ) # )</p>
 <!-- library(DT); library(crosstalk) -->
 <!-- data <- data.frame( -->
 <!--   ID = 1:5, -->
